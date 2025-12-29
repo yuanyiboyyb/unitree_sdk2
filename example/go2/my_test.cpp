@@ -21,6 +21,8 @@ public:
     enum ActionPhase
     {
         PHASE_PREPARE = 0, 
+        PHASE_SIT, 
+        PHASE_POSEACTION,
         //动作枚举
 
     };
@@ -36,10 +38,14 @@ public:
        
         action_durations_ = {
             {PHASE_PREPARE, 3.0}, 
+            {PHASE_SIT, 5.0},
+            {PHASE_POSEACTION,5.0}
             //动作需要完成时间 只包括该动作时间，不包括恢复时间
         };
         action_names_ = {
             {PHASE_PREPARE, "准备状态(静止站立)"},
+            {PHASE_SIT, "坐下"},
+            {PHASE_POSEACTION,"摆姿势"},
             //动作名称
         };
 
@@ -56,6 +62,10 @@ public:
         {
         case PHASE_PREPARE:
             PrepareState();
+            break;
+        case PHASE_SIT:
+            Sit();
+            break;
         //填写动作执行方法
 
         default:
@@ -122,7 +132,7 @@ public:
     void PrintActionMenu()
     {
         std::cout << "\n=== Unitree Go2 动作控制菜单 ===" << std::endl;
-        for (int i = 1; i <= 17; ++i)
+        for (int i = 1; i <= action_names_.size(); ++i)
         {
             ActionPhase phase = static_cast<ActionPhase>(i);
             std::cout << i << ". " << action_names_[phase]
@@ -150,6 +160,9 @@ public:
         }
         return "未知状态";
     }
+    int getlen(){
+        return action_durations_.size();
+    }
 
 private:
 
@@ -161,6 +174,32 @@ private:
             std::this_thread::sleep_for(std::chrono::milliseconds(400));
         }
         sport_client.BalanceStand();
+    }
+    void Sit()
+    {
+        if(flag == 0){
+            int32_t result =  sport_client.Sit();;
+            if (result == 0) {
+                std::cout << "开始打滚动作..." << std::endl;
+            } else {
+                std::cout << "打滚指令发送失败，错误码: " << result << std::endl;
+            }
+            flag = true;
+        }
+    }
+    void PoseAction()
+    {
+        if (!flag) {
+            // 开始摆姿势
+            int32_t result = sport_client.Pose(true);
+            if (result == 0) {
+                std::cout << "开始摆姿势..." << std::endl;
+                
+            } else {
+                std::cout << "摆姿势指令发送失败，错误码: " << result << std::endl;
+            }
+            flag = true;
+        }
     }
 
     void HighStateHandler(const void *message)
@@ -207,7 +246,7 @@ void InputThread(Custom *custom)
         }
         else if (!(action_id >= 0 && action_id <= 16))
         {
-            std::cout << "无效的动作编号! 请输入1-17之间的数字" << std::endl;
+            std::cout << "无效的动作编号! 请输入1-" <<  custom->getlen() <<"之间的数字" << std::endl;
             custom->PrintActionMenu();
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
