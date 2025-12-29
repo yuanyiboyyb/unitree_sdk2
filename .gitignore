@@ -6,3 +6,7 @@ build
 
 #cland
 .cache
+
+GPATH
+GRTAGS
+GTAGS
